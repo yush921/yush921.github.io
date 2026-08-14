@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>軍人将棋 ― 突入口と橋の陣 ―</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #4d5640;
+    --bg-deep: #333a29;
+    --wood: #6e6547;
+    --wood-light: #8d7f56;
+    --wood-dark: #3c3624;
+    --board-line: #211f16;
+    --ink: #241f16;
+    --ink-soft: #4c4632;
+    --accent: #a8321f;
+    --accent-soft: rgba(168,50,31,.16);
+    --accent-glow: rgba(168,50,31,.5);
+    --enemy: #6b5a1f;
+    --enemy-2: #453a14;
+    --enemy-text: #cfc49a;
+    --lake-a: #35505a;
+    --lake-b: #405d68;
+    --entry-cyan: #cdbd8e;
+    --bridge-green: #7a5a35;
+    --hq-red: #c23b2c;
+    --hq-yellow: #d9a91f;
+    --paper: #e7dfc0;
+    --border-soft: #8a7d54;
+    --gold: #c99a2e;
+    --player-a: #e0782f;
+    --player-b: #a3401c;
+    /* 自駒のうち「まだ相手にバレていない」駒の色(あえて控えめ)。.piece.exposed の方が明るい */
+    --player-exposed-a: #b5703f;
+    --player-exposed-b: #6e3a1f;
+    --hq-player-a: #e0aa63;
+    --hq-player-b: #b97934;
+    --hq-cpu-a: #e3c664;
+    --hq-cpu-b: #b99934;
+    --revealed-a: #e2c34a;
+    --revealed-b: #b8922a;
+    --shadow: 0 6px 18px rgba(10,10,5,.4);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 38px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 1px, transparent 1px 38px),
+      radial-gradient(1300px 650px at 50% -10%, #5c6650 0%, var(--bg) 55%, var(--bg-deep) 100%);
+    color:var(--ink);
+    font-family:'Noto Sans JP', sans-serif;
+    min-height:100vh;
+    padding: 18px 12px 60px;
+  }
+  .app{ max-width: 1040px; margin:0 auto; }
+
+  .topbar{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    flex-wrap:wrap; gap:10px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(231,223,192,.25);
+  }
+  .title-block{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .title{
+    font-family:'Shippori Mincho', serif;
+    font-weight:800;
+    font-size: clamp(22px, 5vw, 32px);
+    margin:0;
+    color:var(--paper);
+    letter-spacing: .08em;
+    text-shadow: 0 2px 3px rgba(0,0,0,.5);
+  }
+  .subtitle{
+    font-family:'Shippori Mincho', serif;
+    font-size: 13px;
+    color: rgba(231,223,192,.65);
+    letter-spacing:.1em;
+  }
+  .status{
+    font-size: 14px;
+    font-weight:700;
+    background: var(--paper);
+    border:1px solid var(--border-soft);
+    padding: 7px 14px;
+    border-radius: 999px;
+    box-shadow: var(--shadow);
+    white-space:nowrap;
+  }
+  .status.turn-player{ color: var(--accent); border-color: var(--accent-glow); }
+  .status.turn-cpu{ color: var(--ink-soft); }
+
+  .header-actions{ display:flex; gap:8px; }
+
+  .layout{
+    display:grid;
+    grid-template-columns: minmax(0,1fr) 300px;
+    gap: 18px;
+    align-items:start;
+  }
+  @media (max-width: 780px){
+    .layout{ grid-template-columns: 1fr; }
+  }
+
+  .board-wrap{
+    position:relative;
+    background:
+      radial-gradient(circle at 8px 8px, rgba(0,0,0,.45) 0 3px, transparent 3.2px),
+      radial-gradient(circle at calc(100% - 8px) 8px, rgba(0,0,0,.45) 0 3px, transparent 3.2px),
+      radial-gradient(circle at 8px calc(100% - 8px), rgba(0,0,0,.45) 0 3px, transparent 3.2px),
+      radial-gradient(circle at calc(100% - 8px) calc(100% - 8px), rgba(0,0,0,.45) 0 3px, transparent 3.2px),
+      radial-gradient(120px 90px at 15% 20%, rgba(0,0,0,.18), transparent 70%),
+      radial-gradient(160px 110px at 85% 75%, rgba(0,0,0,.16), transparent 70%),
+      linear-gradient(160deg, var(--wood-light), var(--wood-dark));
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: var(--shadow), inset 0 0 0 1px rgba(0,0,0,.4), inset 0 2px 6px rgba(0,0,0,.35);
+  }
+  .board-caption{
+    text-align:center;
+    font-size:12px;
+    color: rgba(231,223,192,.8);
+    margin-bottom:8px;
+    letter-spacing:.05em;
+  }
+  .board{
+    display:grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(4, 1fr) 1.3fr repeat(4, 1fr);
+    aspect-ratio: 8 / 9.6;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--wood-dark);
+    border-radius: 6px;
+    overflow:hidden;
+    box-shadow: inset 0 0 0 2px var(--board-line), inset 0 2px 10px rgba(0,0,0,.4);
+  }
+  .cell{
+    position:relative;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: inset -1px -1px 0 rgba(0,0,0,.35), inset 1px 1px 0 rgba(255,255,255,.08);
+  }
+  .cell.zone-cpu{ background: #8b7f5a; }
+  .cell.zone-player{ background: #5c6b45; }
+  .cell.zone-cpu.entry{ background: repeating-linear-gradient(45deg, #a99a68, #a99a68 5px, #9b8c5c 5px, #9b8c5c 10px); }
+  .cell.zone-player.entry{ background: repeating-linear-gradient(45deg, #71805a, #71805a 5px, #64744e 5px, #64744e 10px); }
+  .cell.hq-cpu, .cell.hq-player{
+    overflow: hidden;
+  }
+  .cell.hq-cpu{
+    background: linear-gradient(155deg, var(--hq-cpu-a) 0%, var(--hq-cpu-b) 100%);
+    box-shadow: inset 0 0 0 2px #a89144, inset -1px -1px 0 rgba(0,0,0,.2);
+  }
+  .cell.hq-player{
+    background: linear-gradient(155deg, var(--hq-player-a) 0%, var(--hq-player-b) 100%);
+    box-shadow: inset 0 0 0 2px #b0864f, inset -1px -1px 0 rgba(0,0,0,.2);
+  }
+  .cell.hq-cpu .piece, .cell.hq-player .piece{ width:44%; z-index:2; }
+  .hq-emblem{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    height:180%; aspect-ratio:1/1;
+    pointer-events:none; z-index:0;
+  }
+  .hq-emblem svg{ width:100%; height:100%; display:block; }
+  .cell.zone-lake{
+    background:
+      repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 2px, transparent 2px 14px),
+      repeating-linear-gradient(135deg, var(--lake-a), var(--lake-a) 6px, var(--lake-b) 6px, var(--lake-b) 12px);
+    cursor:default;
+  }
+  .cell.zone-bridge{
+    background: repeating-linear-gradient(90deg, var(--bridge-green) 0 5px, #6b4e2c 5px 6px);
+    box-shadow: inset 0 0 0 2px #3f2c17, inset -1px -1px 0 rgba(0,0,0,.35);
+  }
+
+  .cell.clickable{ cursor:pointer; }
+  .cell.selected{ box-shadow: inset 0 0 0 3px var(--accent); }
+  .cell.legal-empty::after{
+    content:'';
+    width: 32%; aspect-ratio: 1 / 1;
+    border-radius:50%;
+    background: rgba(212,64,38,.75);
+    box-shadow: 0 0 0 2px rgba(255,255,255,.75), 0 0 8px rgba(212,64,38,.8);
+    z-index: 3;
+    animation: legalPulse 1.1s ease-in-out infinite;
+  }
+  .cell.legal-capture{
+    box-shadow: inset 0 0 0 4px #ff5a35, 0 0 10px 1px rgba(255,90,53,.85);
+    z-index: 3;
+    animation: legalCapturePulse 1.1s ease-in-out infinite;
+  }
+  @keyframes legalPulse{
+    0%, 100%{ transform: scale(1); opacity:1; }
+    50%{ transform: scale(1.18); opacity:.75; }
+  }
+  @keyframes legalCapturePulse{
+    0%, 100%{ box-shadow: inset 0 0 0 4px #ff5a35, 0 0 10px 1px rgba(255,90,53,.85); }
+    50%{ box-shadow: inset 0 0 0 4px #ffcf35, 0 0 14px 3px rgba(255,207,53,.9); }
+  }
+  .cell.setup-empty:hover{ background: var(--accent-soft); }
+
+  .piece{
+    width: 86%; aspect-ratio: 1 / 1;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    clip-path: polygon(50% 2%, 90% 30%, 80% 98%, 20% 98%, 10% 30%);
+    background: linear-gradient(155deg, var(--player-exposed-a) 0%, var(--player-exposed-b) 100%);
+    border: 1px solid rgba(0,0,0,.55);
+    box-shadow: 0 3px 4px rgba(0,0,0,.5), inset 0 5px 7px rgba(255,255,255,.22), inset 0 -8px 11px rgba(0,0,0,.28), inset 3px 0 5px rgba(255,255,255,.08);
+    font-family:'Shippori Mincho', serif;
+    font-weight:800;
+    color: #2a1607;
+    font-size: clamp(8px, 2.1vw, 13px);
+    letter-spacing: .02em;
+    user-select:none;
+    text-align:center;
+    line-height:1.05;
+    z-index:1;
+    flex-shrink:0;
+    filter: drop-shadow(0 2.5px 0 rgba(20,13,5,.5)) drop-shadow(0 4px 3px rgba(0,0,0,.35));
+  }
+  .piece .picon{ width:15px; height:15px; flex:0 0 auto; }
+  .piece .label-vertical{
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    letter-spacing: .12em;
+    line-height: 1;
+  }
+  .piece.lbl-sm{ font-size: clamp(6.5px, 1.7vw, 10px); }
+  .piece.cpu-piece{
+    clip-path: polygon(50% 98%, 90% 70%, 80% 2%, 20% 2%, 10% 70%);
+    background: linear-gradient(155deg, var(--enemy) 0%, var(--enemy-2) 100%);
+    color: var(--enemy-text);
+    border-color: #2c2408;
+  }
+  .piece.cpu-piece:not(.cpu-hidden){
+    background: linear-gradient(155deg, var(--revealed-a) 0%, var(--revealed-b) 100%);
+    color: #2a1c04;
+  }
+  .piece.cpu-hidden{ color: transparent; }
+  .piece.selected-piece{ filter: brightness(1.12); }
+
+  .sidepanel{ display:flex; flex-direction:column; gap:14px; }
+  .panel{
+    background: var(--paper);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: var(--shadow);
+  }
+  .panel h2{
+    font-family:'Shippori Mincho', serif;
+    font-size: 15px;
+    margin: 0 0 10px;
+    padding-bottom:6px;
+    border-bottom: 1px solid var(--border-soft);
+    color: var(--ink);
+    letter-spacing:.05em;
+  }
+  .setup-hint{
+    font-size:12px;
+    color: var(--ink-soft);
+    margin: -4px 0 10px;
+    line-height:1.6;
+  }
+  .palette{ display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:5px; margin-bottom:12px; max-height: 420px; overflow-y:auto; overflow-x:hidden; }
+  .stock-item{
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    padding: 5px 3px;
+    border-radius: 8px;
+    border: 1px solid var(--border-soft);
+    background: #fbf6e3;
+    cursor:pointer;
+    min-width:0;
+    transition: background-color .1s ease, border-color .1s ease;
+  }
+  .stock-item:hover{ background: var(--accent-soft); border-color: var(--accent-glow); }
+  .stock-item.selected{
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 2px var(--accent-glow) inset;
+  }
+  .stock-item.empty{ opacity:.35; cursor:not-allowed; pointer-events:none; }
+  .stock-item-text{ display:flex; flex-direction:column; align-items:center; gap:0; min-width:0; width:100%; }
+  .stock-mini{
+    width: 26px; height:26px; flex:0 0 auto;
+    clip-path: polygon(50% 2%, 90% 30%, 80% 98%, 20% 98%, 10% 30%);
+    background: linear-gradient(155deg, var(--player-a) 0%, var(--player-b) 100%);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Shippori Mincho', serif; font-weight:800; font-size:8px; color:#2a1607;
+    border:1px solid rgba(0,0,0,.5);
+  }
+  .stock-label{ font-size:10px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; text-align:center; }
+  .stock-count{ font-size:9px; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space:nowrap; text-align:center; }
+
+  .setup-actions{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+
+  .btn{
+    font-family:'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    font-weight:700;
+    padding: 9px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border-soft);
+    background: #fbf6e3;
+    color: var(--ink);
+    cursor:pointer;
+    transition: filter .12s ease, transform .05s ease;
+  }
+  .btn:hover{ filter: brightness(.97); }
+  .btn:active{ transform: translateY(1px); }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn-primary{ background: var(--accent); color:#fdf6ec; border-color: var(--accent); }
+  .btn-ghost{ background: transparent; }
+  .btn-small{ padding:6px 10px; font-size:12px; }
+  .header-actions .btn{ background: rgba(231,223,192,.12); color: var(--paper); border-color: rgba(231,223,192,.4); }
+  .header-actions .btn:hover{ background: rgba(231,223,192,.24); }
+  .header-actions .btn-primary{ background: var(--accent); color:#fdf6ec; border-color: var(--accent); }
+
+  .captured-list{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; min-height: 20px; }
+  .captured-list:last-child{ margin-bottom:0; }
+  .captured-mini{
+    width:34px; height:34px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .captured-mini .piece{ width:100%; height:100%; font-size:5.2px !important; letter-spacing:0 !important; justify-content:center !important; padding-bottom:0 !important; }
+  .captured-mini .piece .picon{ width:8px; height:8px; }
+  .stock-mini-wrap{
+    width:34px; height:34px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .stock-mini-wrap .piece{ width:100%; height:100%; font-size:5.2px !important; letter-spacing:0 !important; justify-content:center !important; padding-bottom:0 !important; }
+  .stock-mini-wrap .piece .picon{ width:8px; height:8px; }
+  .empty-note{ font-size:12px; color: rgba(90,79,64,.6); }
+
+  .log{
+    max-height: 190px;
+    overflow-y:auto;
+    display:flex; flex-direction:column; gap:6px;
+    font-size:12.5px;
+    line-height:1.5;
+  }
+  .log-line{
+    padding: 6px 9px;
+    background:#fff;
+    border-left: 3px solid var(--border-soft);
+    border-radius: 4px;
+  }
+  .log-line.win{ border-left-color: var(--accent); font-weight:700; }
+  .log-line.you{ border-left-color: var(--accent); }
+  .log-line.cpu{ border-left-color: var(--ink-soft); }
+  .log-line.warn{ border-left-color: #b8960a; color:#7a6300; }
+
+
+  .rules-list{ font-size:12.5px; color: var(--ink-soft); line-height:1.8; margin:0; padding:12px 14px 12px 1.6em; }
+  .rules-list li{ margin-bottom:8px; }
+  .rules-list b{ color: var(--ink); }
+
+  .overlay{
+    position:fixed; inset:0;
+    background: rgba(20,16,10,.72);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap: 18px;
+    z-index: 50;
+    padding: 20px;
+  }
+  .stamp{
+    font-family:'Shippori Mincho', serif;
+    font-weight:800;
+    font-size: 84px;
+    width: 150px; height:150px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius: 12px;
+    border: 6px solid currentColor;
+    transform: rotate(-8deg);
+    animation: stampIn .35s cubic-bezier(.2,1.4,.4,1) both;
+    text-align:center;
+  }
+  .stamp.win{ color: #d0442b; }
+  .stamp.lose{ color: #cfc4a9; }
+  .stamp.draw{ color: #8a8370; }
+  @keyframes stampIn{
+    0%{ transform: rotate(-8deg) scale(2.4); opacity:0; }
+    100%{ transform: rotate(-8deg) scale(1); opacity:1; }
+  }
+  .overlay-text{
+    font-family:'Shippori Mincho', serif;
+    font-size: 20px;
+    color: #f7f1e2;
+    text-align:center;
+  }
+
+
+  .cell-clash{ z-index: 5; box-shadow: inset 0 0 0 2px var(--accent), 0 0 10px rgba(168,50,31,.6); }
+  .clash-wrap{
+    display:flex; align-items:center; justify-content:center; gap:2px;
+    width:100%; height:100%;
+  }
+  .clash-piece{
+    width:47% !important; aspect-ratio: 1 / 1 !important;
+    font-size: clamp(6px, 1.7vw, 10px) !important;
+  }
+  .clash-piece .picon{ width:11px; height:11px; }
+
+  /* 捕獲リストでは敵駒も向きを揃えて(上向きで)表示する */
+  .piece.cpu-piece.captured-view{ clip-path: polygon(50% 2%, 90% 30%, 80% 98%, 20% 98%, 10% 30%); }
+
+  .piece.exposed{
+    background: linear-gradient(155deg, var(--player-a) 0%, var(--player-b) 100%);
+  }
+
+  .table-modal{
+    background: var(--paper);
+    border-radius: 12px;
+    padding: 14px;
+    max-width: 98vw;
+    max-height: 92vh;
+    display:flex; flex-direction:column; gap:10px;
+    box-shadow: var(--shadow);
+  }
+  .table-modal-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .table-modal-header h2{
+    font-family:'Shippori Mincho', serif; font-size:17px; margin:0; color:var(--ink); letter-spacing:.05em;
+  }
+  .table-scroll{ overflow:auto; border:1px solid var(--border-soft); border-radius:8px; background:#fff; }
+  #resultTable{ border-collapse:collapse; font-size:9.5px; table-layout:fixed; }
+  #resultTable th, #resultTable td{
+    border:1px solid var(--border-soft);
+    padding: 2px 1px;
+    text-align:center;
+    width: 5.4vw;
+    max-width: 22px;
+    overflow:hidden;
+  }
+  #resultTable th{
+    background: #ddcf9f;
+    font-weight:700;
+    position:sticky;
+    color: var(--ink);
+  }
+  #resultTable tr:first-child th{
+    top:0; z-index:3;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    letter-spacing: -1px;
+    height: 46px;
+    padding: 3px 0;
+  }
+  #resultTable th:first-child, #resultTable td:first-child{
+    position:sticky; left:0; z-index:2; background: #ddcf9f; font-weight:700;
+    width: 32px; max-width: 32px;
+  }
+  #resultTable tr:first-child th:first-child{
+    z-index:4; writing-mode: initial; text-orientation: initial; height:auto; font-size:8.5px; letter-spacing:0;
+  }
+  #resultTable td.win{ color:#a6432d; font-weight:700; }
+  #resultTable td.lose{ color:#8a8370; }
+  #resultTable td.draw{ color:#2b6620; font-weight:700; }
+  #resultTable td.na{ color:#c3b89a; }
+  #resultTable .hl-cell{ background-color: rgba(166,67,45,.28) !important; }
+  #resultTable .hl-exact{ background-color: rgba(166,67,45,.55) !important; box-shadow: inset 0 0 0 2px #7a2a18; color:#fff !important; }
+  .table-note{ font-size:11px; color: var(--ink-soft); line-height:1.6; }
+
+  .move-scroll{ display:flex; flex-direction:column; gap:10px; padding:2px; }
+  .move-row{
+    display:flex; align-items:center; gap:12px;
+    padding: 8px; border:1px solid var(--border-soft); border-radius:8px; background:#fbf6e3;
+  }
+  .move-row .move-name{ display:flex; flex-direction:column; align-items:center; gap:4px; width:130px; flex:0 0 auto; }
+  .move-name-minis{ display:flex; flex-wrap:wrap; gap:4px; justify-content:center; }
+  .move-row .move-name span{ font-size:10.5px; font-weight:700; color:var(--ink); text-align:center; line-height:1.4; }
+  .move-grid{
+    display:grid; grid-template-columns: repeat(5, 16px); grid-template-rows: repeat(5, 16px);
+    gap:1px; background: var(--board-line); border:1px solid var(--board-line); flex:0 0 auto;
+  }
+  .move-cell{ background:#e9e2c8; }
+  .move-cell.reach{ background: #6f9c4a; }
+  .move-cell.center{ background: var(--player-a); }
+  .move-desc{ font-size:11.5px; color: var(--ink-soft); line-height:1.6; flex:1; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="title-block">
+      <h1 class="title">軍人将棋</h1>
+      <span class="subtitle">― 突入口と橋の陣 ―</span>
+    </div>
+    <div class="header-actions">
+      <div class="status" id="statusText">準備中…</div>
+      <button class="btn btn-ghost btn-small" id="showTableBtn">勝敗表</button>
+      <button class="btn btn-ghost btn-small" id="showMoveBtn">移動範囲</button>
+      <button class="btn btn-ghost btn-small" id="showRulesBtn">ルール概要</button>
+      <button class="btn btn-ghost btn-small" id="restartBtn">はじめから</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="board-wrap">
+      <div class="board" id="board"></div>
+    </div>
+
+    <div class="sidepanel">
+      <div class="panel setup-panel" id="setupPanel">
+        <h2>持ち駒を配置</h2>
+        <div class="setup-hint">駒をタップして選択し、自陣地(下段4段)のマスをタップして配置します。配置済みの駒をタップすると手元に戻せます。<br>地雷は突入口・司令部に、軍旗は突入口・最下行には置けません。</div>
+        <div class="setup-actions">
+          <button class="btn btn-ghost btn-small" id="randomizeBtn">ランダム配置</button>
+          <button class="btn btn-ghost btn-small" id="resetSetupBtn">リセット</button>
+          <button class="btn btn-primary" id="finishSetupBtn" disabled>配置を完了する</button>
+        </div>
+        <div class="palette" id="palette"></div>
+      </div>
+
+      <div class="panel captured-panel" id="capturedPanel" style="display:none;">
+        <h2>捕獲した敵の駒</h2>
+        <div class="captured-list" id="capturedByPlayer"><span class="empty-note">まだありません</span></div>
+        <h2>失った自分の駒</h2>
+        <div class="captured-list" id="capturedByCpu"><span class="empty-note">まだありません</span></div>
+      </div>
+
+      <div class="panel log-panel">
+        <h2>戦況ログ</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="gameOverOverlay" style="display:none;">
+  <div class="stamp" id="stamp">勝</div>
+  <div class="overlay-text" id="overlayText"></div>
+  <button class="btn btn-primary" id="playAgainBtn">もう一度プレイ</button>
+</div>
+
+<div class="overlay" id="rulesOverlay" style="display:none;">
+  <div class="table-modal">
+    <div class="table-modal-header">
+      <h2>ルール概要</h2>
+      <button class="btn btn-small" id="closeRulesBtn">閉じる</button>
+    </div>
+    <div class="table-scroll">
+      <ul class="rules-list">
+        <li><b>勝利条件</b>: ①敵を全滅させる、②<b>将・佐階級</b>(大将〜少佐)の駒で敵司令部(赤マス)を占領する、のいずれか。他の階級が敵司令部に乗っても勝ちにはなりません。</li>
+        <li><b>敗北条件</b>: 将・佐階級の駒が１つもいなくなったら、その時点で負け。動かせる駒が無くなっても負け(パス不可)。</li>
+        <li><b>移動力</b>: 将・佐・尉階級とスパイ=縦横１歩／騎兵・タンク=前２歩・後方と横は１歩／工兵=縦横どこまでも直進／ヒコーキ=縦は何マスでも(駒も河も飛び越せる)、横は１歩／地雷・軍旗=移動不可。</li>
+        <li><b>渡河</b>: ヒコーキ以外は橋を通らないと陣地間を移動できません。突入口(水色)から橋(緑)へ、橋から反対側の突入口へと進みます。</li>
+        <li><b>戦闘</b>: ぶつかった駒の階級で自動判定。スパイは大将にだけ勝てますが他には全敗。工兵は地雷を無効化しタンクにも勝てます。地雷は工兵とヒコーキ以外の駒に無敵。同格同士は相討ちです。</li>
+        <li><b>軍旗の強さ</b>: 単体では防御力がなく必ず捕獲されますが、自陣奥側の隣(背後)に自分の駒がいれば、軍旗はその駒と同じ強さで応戦します(駒を重ねて置く必要はありません)。</li>
+        <li><b>配置制限</b>: 地雷は突入口・司令部マスに置けません。軍旗は突入口・自陣の最下段には置けません。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="tableOverlay" style="display:none;">
+  <div class="table-modal">
+    <div class="table-modal-header">
+      <h2>勝敗表</h2>
+      <button class="btn btn-small" id="closeTableBtn">閉じる</button>
+    </div>
+    <div class="table-scroll">
+      <table id="resultTable"></table>
+    </div>
+    <div class="table-note">縦(左端)が自分の駒、横(上端)が相手の駒です。○:勝ち　×:負け　△:引き分け(相討ち)　－:軍旗は攻撃できません。軍旗単体は防御力を持ちませんが、自陣奥側の隣接マスに自分の駒がいる場合、軍旗はその駒と同じ強さで戦います。</div>
+  </div>
+</div>
+
+<div class="overlay" id="moveOverlay" style="display:none;">
+  <div class="table-modal">
+    <div class="table-modal-header">
+      <h2>各駒の移動範囲</h2>
+      <button class="btn btn-small" id="closeMoveBtn">閉じる</button>
+    </div>
+    <div class="table-scroll move-scroll" id="moveList"></div>
+    <div class="table-note">図はマスの通行を無視した「移動できる方向」の目安です(緑=移動可)。↑を前進方向とします。実際の盤上では自軍の向きに応じて前進方向が変わり、河や味方の駒などで移動が制限されます。</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- board geometry (matches the supplied board.gif) ----------
+  const ROWS = 9, COLS = 8;
+  const CPU_ROWS = [0,1,2,3];      // row3 = CPU-side entry row (突入口)
+  const PLAYER_ROWS = [5,6,7,8];   // row5 = player-side entry row (突入口)
+  const RIVER_ROW = 4;             // 河 (single row, mostly impassable)
+  const BRIDGE_COLS = [1,6];       // 橋
+
+  // entry cell "r,c" -> the bridge column it diagonally connects to
+  const ENTRY_LINKS = {
+    '3,0':1, '3,2':1, '5,0':1, '5,2':1,
+    '3,5':6, '3,7':6, '5,5':6, '5,7':6,
+  };
+  // bridge column -> the (up to 4) entry cells it diagonally connects to
+  const BRIDGE_LINKS = {
+    1: [{r:3,c:0},{r:3,c:2},{r:5,c:0},{r:5,c:2}],
+    6: [{r:3,c:5},{r:3,c:7},{r:5,c:5},{r:5,c:7}],
+  };
+
+  // 司令部は2マス分の幅を持つが、実際には中央に置く「1駒ぶんの陣地」として扱う。
+  // 内部的には常に列3を正規の司令部セルとし、列4はその見た目上の延長(常に空)として扱う。
+  const HQ_COL = 3;
+  const HQ_PHANTOM_COL = 4;
+  const CPU_HQ = {r:0,c:HQ_COL};
+  const PLAYER_HQ = {r:8,c:HQ_COL};
+  function isHQRow(r){ return r===0 || r===8; }
+
+  const ELIGIBLE_HQ_RANKS = ['marshal','general','lgeneral','colonel','lcolonel','major']; // 将・佐階級
+
+  // ---------- piece roster (matches the supplied 勝敗表: 16 ranks / 31 pieces per side) ----------
+  const PIECE_DEFS = [
+    {type:'marshal',     label:'大将',     count:1},
+    {type:'general',     label:'中将',     count:1},
+    {type:'lgeneral',    label:'少将',     count:2},
+    {type:'colonel',     label:'大佐',     count:2},
+    {type:'lcolonel',    label:'中佐',     count:2},
+    {type:'major',       label:'少佐',     count:2},
+    {type:'captain',     label:'大尉',     count:2},
+    {type:'lieutenant',  label:'中尉',     count:2},
+    {type:'slieutenant', label:'少尉',     count:2},
+    {type:'cavalry',     label:'騎兵',     count:2},
+    {type:'engineer',    label:'工兵',     count:3},
+    {type:'spy',         label:'スパイ',   count:1},
+    {type:'airplane',    label:'ヒコーキ', count:2},
+    {type:'tank',        label:'タンク',   count:3},
+    {type:'mine',        label:'地雷',     count:3},
+    {type:'flag',        label:'軍旗',     count:1},
+  ];
+  const DEF_BY_TYPE = Object.fromEntries(PIECE_DEFS.map(d=>[d.type,d]));
+
+  // 駒に添えるワンポイントのイラスト(タイプごとの簡易アイコン)。将〜尉官はアイコンなし(縦書き文字で表示)。
+  const PIECE_ICONS = {
+    tank: '<svg class="picon" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="12.5" width="18" height="4.5" rx="1"/><rect x="8" y="8.3" width="7" height="4.4" rx="1"/><rect x="15" y="9.8" width="6.5" height="1.6" rx="0.6"/><circle cx="6.2" cy="18" r="1.5"/><circle cx="10.4" cy="18" r="1.5"/><circle cx="14.6" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg>',
+    airplane: '<svg class="picon" viewBox="0 0 24 24" fill="currentColor"><g transform="translate(12,12) scale(0.68) translate(-12,-12)"><path d="M12 1.3l1.5 6.4 7.7 3.4v1.7l-7.4-1.7v5l2.7 2v1.5l-3.5-1-.9 3.1h-1.2l-.9-3.1-3.5 1v-1.5l2.7-2v-5L2 12.8v-1.7l7.7-3.4z"/></g></svg>',
+    mine: '<svg class="picon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5.3" fill="currentColor" opacity="0.18" stroke="currentColor" stroke-width="1.8"/><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 4.4v1.8"/><path d="M12 17.8v1.8"/><path d="M4.4 12h1.8"/><path d="M17.8 12h1.8"/><path d="M6.5 6.5l1.3 1.3"/><path d="M16.2 16.2l1.3 1.3"/><path d="M6.5 17.5l1.3-1.3"/><path d="M16.2 7.8l1.3-1.3"/></g><g fill="currentColor"><circle cx="12" cy="3.6" r="1.15"/><circle cx="12" cy="20.4" r="1.15"/><circle cx="3.6" cy="12" r="1.15"/><circle cx="20.4" cy="12" r="1.15"/><circle cx="5.8" cy="5.8" r="1.05"/><circle cx="18.2" cy="18.2" r="1.05"/><circle cx="5.8" cy="18.2" r="1.05"/><circle cx="18.2" cy="5.8" r="1.05"/></g></svg>',
+    flag: '<svg class="picon" viewBox="0 0 24 24"><path d="M6 3v18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/><path d="M6.3 4.2l13.4 3.4-13.4 3.6z" fill="currentColor"/></svg>',
+    spy: '<svg class="picon" viewBox="0 0 24 24" fill="currentColor"><path d="M4 11.2c0-4.2 3.6-7.4 8-7.4s8 3.2 8 7.4v.8H4z"/><rect x="2" y="12.4" width="20" height="2.2" rx="1.1"/><rect x="6" y="15.6" width="5.4" height="2.6" rx="1"/><rect x="12.6" y="15.6" width="5.4" height="2.6" rx="1"/></svg>',
+    cavalry: '<svg class="picon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6.5 21v-8a5.5 5.5 0 0111 0v8"/><path d="M6.5 21h3M14.5 21h3"/></svg>',
+    engineer: '<svg class="picon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2z"/></svg>',
+  };
+
+  // 将〜尉官はアイコンの代わりに縦書き文字で表示する
+  const VERTICAL_LABEL_TYPES = new Set(['marshal','general','lgeneral','colonel','lcolonel','major','captain','lieutenant','slieutenant']);
+
+  // 司令部マスの背景エンブレム(枠からはみ出して大きく表示される、DOM要素として挿入)
+  const HQ_EMBLEM_CPU = '<div class="hq-emblem"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="#5c4a12" stroke-width="2" opacity="0.4"/><circle cx="50" cy="50" r="33" fill="none" stroke="#5c4a12" stroke-width="1.2" opacity="0.32"/><path d="M50 8 L61 38 L93 38 L67 57 L77 88 L50 69 L23 88 L33 57 L7 38 L39 38 Z" fill="#5c4a12" opacity="0.32"/></svg></div>';
+  const HQ_EMBLEM_PLAYER = '<div class="hq-emblem"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="#6e370f" stroke-width="2" opacity="0.35"/><circle cx="50" cy="50" r="33" fill="none" stroke="#6e370f" stroke-width="1.2" opacity="0.28"/><path d="M50 8 L61 38 L93 38 L67 57 L77 88 L50 69 L23 88 L33 57 L7 38 L39 38 Z" fill="#6e370f" opacity="0.28"/></svg></div>';
+
+
+  // combat table, transcribed exactly from the supplied 勝敗表 (○=勝ち).
+  // resolveCombat looks up "does attacker beat defender"; same type = draw; anything
+  // not listed here loses (covers all the × cells, including "loses to mine/spy" etc.)
+  const BEATS = {
+    marshal:     ['general','lgeneral','colonel','lcolonel','major','captain','lieutenant','slieutenant','cavalry','engineer','airplane','tank'],
+    general:     ['lgeneral','colonel','lcolonel','major','captain','lieutenant','slieutenant','cavalry','engineer','spy','airplane','tank'],
+    lgeneral:    ['colonel','lcolonel','major','captain','lieutenant','slieutenant','cavalry','engineer','spy','airplane','tank'],
+    colonel:     ['lcolonel','major','captain','lieutenant','slieutenant','cavalry','engineer','spy'],
+    lcolonel:    ['major','captain','lieutenant','slieutenant','cavalry','engineer','spy'],
+    major:       ['captain','lieutenant','slieutenant','cavalry','engineer','spy'],
+    captain:     ['lieutenant','slieutenant','cavalry','engineer','spy'],
+    lieutenant:  ['slieutenant','cavalry','engineer','spy'],
+    slieutenant: ['cavalry','engineer','spy'],
+    cavalry:     ['engineer','spy'],
+    engineer:    ['spy','tank','mine'],
+    spy:         ['marshal'],
+    airplane:    ['colonel','lcolonel','major','captain','lieutenant','slieutenant','cavalry','engineer','spy','tank','mine'],
+    tank:        ['colonel','lcolonel','major','captain','lieutenant','slieutenant','cavalry','spy'],
+    mine:        ['marshal','general','lgeneral','colonel','lcolonel','major','captain','lieutenant','slieutenant','cavalry','spy','tank'],
+    flag:        [],
+  };
+
+  let nextId = 1;
+  let state = null;
+
+  function freshStock(){
+    const s = {};
+    PIECE_DEFS.forEach(d=> s[d.type]=d.count);
+    return s;
+  }
+
+  function makePiece(owner,type){
+    const def = DEF_BY_TYPE[type];
+    return { id: nextId++, owner, type, label: def.label, revealed:false };
+  }
+
+  function emptyBoard(){
+    const b=[];
+    for(let r=0;r<ROWS;r++){ b.push(new Array(COLS).fill(null)); }
+    return b;
+  }
+
+  function shuffle(arr){
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]] = [arr[j],arr[i]];
+    }
+    return arr;
+  }
+
+  function inBounds(r,c){ return r>=0 && r<ROWS && c>=0 && c<COLS; }
+  function isEntry(r,c){ return Object.prototype.hasOwnProperty.call(ENTRY_LINKS, r+','+c); }
+  function isBridge(r,c){ return r===RIVER_ROW && BRIDGE_COLS.includes(c); }
+  // 移動判定における「渡れないマス」。橋そのものも含め、河の行は通常の縦横移動では
+  // 進入できない(橋へは斜め方向の突入口リンクからのみ渡れる)。
+  function isLake(r,c){ return r===RIVER_ROW; }
+  function isHQCell(r,c,owner){
+    const hq = owner==='player' ? PLAYER_HQ : CPU_HQ;
+    return hq.r===r && hq.c===c;
+  }
+  function backRow(owner){ return owner==='player' ? 8 : 0; }
+
+  // 盤上の移動計算はすべてこの関数を通す。司令部の2マスは中央の1マス(列3)に
+  // 統合されているので、列4への到達は列3へ正規化し、列3から右へさらに進む
+  // ときは(見た目上の)列4を飛ばして列5へ進む。
+  function advance(r,c,dr,dc){
+    let nr = r+dr, nc = c+dc;
+    if(isHQRow(r) && dr===0 && dc===1 && c===HQ_COL){
+      nc = HQ_COL+2; // 司令部の中央から右へ抜けるときは列4を飛ばす
+    }
+    if(isHQRow(nr) && nc===HQ_PHANTOM_COL){
+      nc = HQ_COL; // 列4に着地する場合は常に司令部本体(列3)に正規化
+    }
+    return {r:nr,c:nc};
+  }
+
+  // 陣地マスの一覧を返す(司令部行では列4を除いた7マスになる)
+  function territoryCells(rowList){
+    const cells=[];
+    rowList.forEach(r=>{
+      for(let c=0;c<COLS;c++){
+        if(isHQRow(r) && c===HQ_PHANTOM_COL) continue;
+        cells.push({r,c});
+      }
+    });
+    return cells;
+  }
+
+  function zoneOf(r,c){
+    if(CPU_ROWS.includes(r)) return 'cpu';
+    if(PLAYER_ROWS.includes(r)) return 'player';
+    return BRIDGE_COLS.includes(c) ? 'bridge' : 'lake';
+  }
+
+  function canPlaceAt(type, r, c, owner){
+    if(type==='mine' && (isEntry(r,c) || isHQCell(r,c,owner))) return false;
+    if(type==='flag' && (isEntry(r,c) || r===backRow(owner))) return false;
+    return true;
+  }
+
+  // ---------- game init ----------
+
+  function newGame(){
+    state = {
+      phase: 'setup', // setup | playing | gameover
+      turn: 'player',
+      board: emptyBoard(),
+      stock: freshStock(),
+      selectedStockType: null,
+      selected: null,
+      legalMoves: [],
+      log: [],
+      capturedByPlayer: [],
+      capturedByCpu: [],
+      winner: null,
+      winReason: null,
+      lastBattle: null,
+      battleDisplay: null,
+      thinking: false,
+    };
+    cpuAutoDeploy();
+    renderAll();
+  }
+
+  function cpuAutoDeploy(){
+    const rowCells = {};
+    CPU_ROWS.forEach(r=>{ rowCells[r]=territoryCells([r]); });
+    Object.values(rowCells).forEach(shuffle);
+    const backCells = rowCells[0], midBackCells = rowCells[1], midFrontCells = rowCells[2], frontCells = rowCells[3];
+    const allCells = shuffle([...backCells,...midBackCells,...midFrontCells,...frontCells]);
+    const used = new Set();
+    function key(cell){ return cell.r+'-'+cell.c; }
+    function takeFrom(list, type){
+      for(const cell of list){ if(!used.has(key(cell)) && canPlaceAt(type,cell.r,cell.c,'cpu')){ used.add(key(cell)); return cell; } }
+      for(const cell of allCells){ if(!used.has(key(cell)) && canPlaceAt(type,cell.r,cell.c,'cpu')){ used.add(key(cell)); return cell; } }
+      return null;
+    }
+    const placements = [];
+    // flag: not on entry, not on back row (row0) -> put it in row1 or row2
+    placements.push({type:'flag', cell: takeFrom([...midBackCells,...midFrontCells],'flag')});
+    // mines: avoid entry & HQ
+    for(let i=0;i<3;i++) placements.push({type:'mine', cell: takeFrom(backCells,'mine')});
+    placements.push({type:'spy', cell: takeFrom(midBackCells,'spy')});
+    placements.push({type:'marshal', cell: takeFrom(midBackCells,'marshal')});
+    for(let i=0;i<3;i++) placements.push({type:'tank', cell: takeFrom(frontCells,'tank')});
+    for(let i=0;i<2;i++) placements.push({type:'airplane', cell: takeFrom(frontCells,'airplane')});
+    for(let i=0;i<2;i++) placements.push({type:'cavalry', cell: takeFrom(frontCells,'cavalry')});
+    const rest = ['general','lgeneral','lgeneral','colonel','colonel','lcolonel','lcolonel','major','major',
+                  'captain','captain','lieutenant','lieutenant','slieutenant','slieutenant','engineer','engineer','engineer'];
+    rest.forEach(t=> placements.push({type:t, cell: takeFrom(allCells,t)}));
+
+    placements.forEach(p=>{
+      if(!p.cell) return;
+      state.board[p.cell.r][p.cell.c] = makePiece('cpu', p.type);
+    });
+  }
+
+  // ---------- combat ----------
+
+  function resolveCombat(a,d){
+    if(d.type==='flag') return 'a'; // 軍旗単体(背後に守る駒がいない場合)は防御力を持たず、必ず捕獲される
+    if(a.type===d.type) return 'both';
+    if(BEATS[a.type] && BEATS[a.type].includes(d.type)) return 'a';
+    return 'd';
+  }
+
+  // 軍旗の「背後」(自陣の奥側)に自分の駒がいる場合、軍旗はその駒と同じ強さで戦う。
+  // 駒を重ねて置く必要はなく、単に盤上でその位置関係にあればよい。
+  function flagShield(r, c, owner){
+    const dr = owner==='player' ? 1 : -1; // 自陣奥へ向かう方向
+    const br = r + dr;
+    if(!inBounds(br,c)) return null;
+    const p = state.board[br][c];
+    return (p && p.owner===owner) ? p : null;
+  }
+
+  // ---------- movement ----------
+
+  const DIRS4 = [[-1,0],[1,0],[0,-1],[0,1]];
+
+  function crossingMoves(r,c,piece,moves){
+    // Only meaningful when (r,c) IS the piece's current square (start of the move).
+    // ヒコーキ以外の駒は、橋を渡るのに必ず一旦橋の上で止まらなければならない
+    // (突入口→橋、橋→反対側の突入口、で最低2手かかる)。
+    if(isEntry(r,c)){
+      const bc = ENTRY_LINKS[r+','+c];
+      const bt = state.board[RIVER_ROW][bc];
+      if(!bt || bt.owner!==piece.owner){
+        moves.push({r:RIVER_ROW,c:bc});
+      }
+    } else if(isBridge(r,c)){
+      BRIDGE_LINKS[c].forEach(({r:er,c:ec})=>{
+        const t = state.board[er][ec];
+        if(!t || t.owner!==piece.owner) moves.push({r:er,c:ec});
+      });
+    }
+  }
+
+  function movesOneStep(r,c,piece){
+    const moves = [];
+    if(!isBridge(r,c)){
+      for(const [dr,dc] of DIRS4){
+        const {r:rr,c:cc} = advance(r,c,dr,dc);
+        if(inBounds(rr,cc) && !isLake(rr,cc)){
+          const t = state.board[rr][cc];
+          if(!t || t.owner!==piece.owner) moves.push({r:rr,c:cc});
+        }
+      }
+    }
+    crossingMoves(r,c,piece,moves);
+    return moves;
+  }
+
+  function movesEngineer(r,c,piece){
+    const moves = [];
+    if(!isBridge(r,c)){
+      for(const [dr,dc] of DIRS4){
+        let cur = {r,c};
+        while(true){
+          const nxt = advance(cur.r,cur.c,dr,dc);
+          if(!inBounds(nxt.r,nxt.c) || isLake(nxt.r,nxt.c)) break;
+          const t = state.board[nxt.r][nxt.c];
+          if(!t){ moves.push({r:nxt.r,c:nxt.c}); cur=nxt; continue; }
+          if(t.owner!==piece.owner) moves.push({r:nxt.r,c:nxt.c});
+          break;
+        }
+      }
+    }
+    crossingMoves(r,c,piece,moves);
+    return moves;
+  }
+
+  function movesCavalryTank(r,c,piece){
+    const moves = [];
+    const fwd = piece.owner==='player' ? -1 : 1; // 前進方向(player=上へ, cpu=下へ)
+    const specs = [ {dr:fwd,dc:0,max:2}, {dr:-fwd,dc:0,max:1}, {dr:0,dc:-1,max:1}, {dr:0,dc:1,max:1} ];
+    if(!isBridge(r,c)){
+      for(const {dr,dc,max} of specs){
+        let cur = {r,c}, steps=1;
+        while(steps<=max){
+          const nxt = advance(cur.r,cur.c,dr,dc);
+          if(!inBounds(nxt.r,nxt.c) || isLake(nxt.r,nxt.c)) break;
+          const t = state.board[nxt.r][nxt.c];
+          if(!t){ moves.push({r:nxt.r,c:nxt.c}); cur=nxt; steps++; continue; }
+          if(t.owner!==piece.owner) moves.push({r:nxt.r,c:nxt.c});
+          break;
+        }
+      }
+    }
+    crossingMoves(r,c,piece,moves);
+    return moves;
+  }
+
+  function movesAirplane(r,c,piece){
+    const moves = [];
+    for(const dr of [-1,1]){
+      let rr=r+dr;
+      while(inBounds(rr,c)){
+        let cc = c;
+        if(isHQRow(rr) && cc===HQ_PHANTOM_COL) cc = HQ_COL; // 司令部行に着地する場合は中央マスへ正規化
+        // ヒコーキは縦に自由に動けるので、橋の列であれば河の行にも直接着陸できる
+        const landable = rr!==RIVER_ROW || BRIDGE_COLS.includes(cc);
+        if(landable){
+          const t = state.board[rr][cc];
+          if(!t || t.owner!==piece.owner) moves.push({r:rr,c:cc});
+        }
+        rr+=dr;
+      }
+    }
+    for(const dc of [-1,1]){
+      const {r:rr,c:cc} = advance(r,c,0,dc);
+      if(inBounds(rr,cc) && (rr!==RIVER_ROW || BRIDGE_COLS.includes(cc))){
+        const t = state.board[rr][cc];
+        if(!t || t.owner!==piece.owner) moves.push({r:rr,c:cc});
+      }
+    }
+    return moves;
+  }
+
+  function dedupeMoves(moves){
+    const seen = new Set();
+    return moves.filter(m=>{
+      const k = m.r+','+m.c;
+      if(seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+  }
+
+  function getLegalMoves(r,c){
+    const piece = state.board[r][c];
+    if(!piece) return [];
+    let moves;
+    switch(piece.type){
+      case 'mine': case 'flag': moves = []; break;
+      case 'engineer': moves = movesEngineer(r,c,piece); break;
+      case 'cavalry': case 'tank': moves = movesCavalryTank(r,c,piece); break;
+      case 'airplane': moves = movesAirplane(r,c,piece); break;
+      default: moves = movesOneStep(r,c,piece);
+    }
+    return dedupeMoves(moves);
+  }
+
+  function ownerName(owner){ return owner==='player' ? 'あなた' : '相手'; }
+
+  function addLog(text, cls){
+    state.log.push({text, cls: cls||''});
+    if(state.log.length>60) state.log.shift();
+  }
+
+  function recordCapture(deadPiece){
+    const info = {type:deadPiece.type, label:deadPiece.label, owner:deadPiece.owner};
+    if(deadPiece.owner==='cpu') state.capturedByPlayer.push(info);
+    else state.capturedByCpu.push(info);
+  }
+
+  function hasEligiblePieces(owner){
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      const p = state.board[r][c];
+      if(p && p.owner===owner && ELIGIBLE_HQ_RANKS.includes(p.type)) return true;
+    }
+    return false;
+  }
+
+  function movePiece(fromR,fromC,toR,toC){
+    const attacker = state.board[fromR][fromC];
+    const defender = state.board[toR][toC];
+    state.board[fromR][fromC] = null;
+    state.lastBattle = null;
+
+    let attackerSurvivedHere = false;
+
+    if(!defender){
+      state.board[toR][toC] = attacker;
+      addLog(`${ownerName(attacker.owner)}の${attacker.owner==='player'?attacker.label:'伏せ駒'}が移動しました。`, attacker.owner==='player'?'you':'cpu');
+      attackerSurvivedHere = true;
+    } else {
+      let effectiveDefender = defender;
+      if(defender.type==='flag'){
+        const shield = flagShield(toR, toC, defender.owner);
+        if(shield) effectiveDefender = shield;
+      }
+      const result = resolveCombat(attacker, effectiveDefender);
+      state.lastBattle = {
+        r: toR, c: toC,
+        attacker:{type:attacker.type, label:attacker.label, owner:attacker.owner},
+        defender:{type:defender.type, label:defender.label, owner:defender.owner},
+        result
+      };
+      if(result==='a'){
+        attacker.revealed = true; defender.revealed = true;
+        state.board[toR][toC] = attacker;
+        recordCapture(defender);
+        addLog(`${ownerName(attacker.owner)}の${attacker.label}が、${ownerName(defender.owner)}の${defender.label}を撃破！`, attacker.owner==='player'?'you':'cpu');
+        attackerSurvivedHere = true;
+      } else if(result==='d'){
+        attacker.revealed = true; defender.revealed = true;
+        state.board[toR][toC] = defender;
+        recordCapture(attacker);
+        addLog(`${ownerName(attacker.owner)}の${attacker.label}は、${ownerName(defender.owner)}の${defender.label}に敗れました。`, attacker.owner==='player'?'you':'cpu');
+      } else {
+        attacker.revealed = true; defender.revealed = true;
+        state.board[toR][toC] = null;
+        recordCapture(attacker); recordCapture(defender);
+        addLog(`${attacker.label}と${defender.label}が相討ちになりました。`, 'cpu');
+      }
+    }
+
+    // 勝利条件①: 将・佐階級が敵司令部を占領
+    if(attackerSurvivedHere && ELIGIBLE_HQ_RANKS.includes(attacker.type)){
+      const enemyOwner = attacker.owner==='player' ? 'cpu' : 'player';
+      if(isHQCell(toR,toC,enemyOwner)){
+        endGame(attacker.owner, 'hq');
+        return;
+      }
+    }
+
+    // 敗北条件: 将・佐階級が全滅
+    const playerHas = hasEligiblePieces('player');
+    const cpuHas = hasEligiblePieces('cpu');
+    if(!playerHas && !cpuHas){ endGame(null, 'eligible-both'); return; }
+    if(!playerHas){ endGame('cpu', 'eligible'); return; }
+    if(!cpuHas){ endGame('player', 'eligible'); return; }
+  }
+
+  function checkNoMoves(owner){
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        const p = state.board[r][c];
+        if(p && p.owner===owner){
+          if(getLegalMoves(r,c).length>0) return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  function endGame(winner, reason){
+    state.phase = 'gameover';
+    state.winner = winner;
+    state.winReason = reason;
+    state.selected = null; state.legalMoves = [];
+    let msg;
+    if(winner===null) msg = '将・佐階級が同時に全滅。引き分けです。';
+    else if(reason==='hq') msg = winner==='player' ? '敵司令部を占領！ あなたの勝利です。' : '自司令部を占領されました。相手の勝利です。';
+    else if(reason==='eligible') msg = winner==='player' ? '相手の将・佐階級が全滅。あなたの勝利です。' : 'あなたの将・佐階級が全滅。相手の勝利です。';
+    else if(reason==='nomoves') msg = winner==='player' ? '相手は動かせる駒がなくなりました。あなたの勝利です。' : 'あなたは動かせる駒がなくなりました。相手の勝利です。';
+    else msg = winner==='player' ? 'あなたの勝利です。' : '相手の勝利です。';
+    addLog(msg, 'win');
+  }
+
+  // ---------- CPU AI ----------
+
+  function pieceRiskValue(type){
+    const map = {
+      marshal:9, general:8, lgeneral:7, airplane:10, tank:9, colonel:6, lcolonel:5,
+      major:4, captain:3, lieutenant:2, slieutenant:1, cavalry:5, engineer:0, spy:9
+    };
+    return map[type] ?? 3;
+  }
+
+  function scoreMove(m){
+    const {from,to,piece} = m;
+    const target = state.board[to.r][to.c];
+    let score = 0;
+    if(target){
+      const known = target.owner==='cpu' || target.revealed;
+      if(known){
+        let effectiveTarget = target;
+        if(target.type==='flag'){
+          const shield = flagShield(to.r, to.c, target.owner);
+          if(shield) effectiveTarget = shield;
+        }
+        const result = resolveCombat(piece, effectiveTarget);
+        if(result==='a'){
+          score += 60 + pieceRiskValue(target.type)*3;
+          if(ELIGIBLE_HQ_RANKS.includes(target.type)) score += 20;
+        }
+        else if(result==='both') score += 8;
+        else score -= 90;
+      } else {
+        const risk = pieceRiskValue(piece.type);
+        score += 18 - risk + (Math.random()*18 - 9);
+        if(['engineer','slieutenant','lieutenant'].includes(piece.type)) score += 10;
+      }
+    } else {
+      score += (piece.owner==='cpu' ? (to.r - from.r) : (from.r - to.r)) * 3;
+      if(ELIGIBLE_HQ_RANKS.includes(piece.type) && isHQCell(to.r,to.c,'player')) score += 200;
+      score += Math.random()*6;
+    }
+    return score;
+  }
+
+  function cpuTurn(){
+    if(state.phase!=='playing') return;
+    const allMoves = [];
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        const p = state.board[r][c];
+        if(p && p.owner==='cpu'){
+          getLegalMoves(r,c).forEach(dest=>{
+            allMoves.push({from:{r,c}, to:dest, piece:p});
+          });
+        }
+      }
+    }
+    if(allMoves.length===0){ endGame('player','nomoves'); renderAll(); showOverlay(); return; }
+
+    const scored = allMoves.map(m=>({...m, score:scoreMove(m)}));
+    scored.sort((a,b)=>b.score-a.score);
+    const top = scored.slice(0, Math.min(4, scored.length));
+    const weights = top.map(m=>Math.max(m.score+60,1));
+    const total = weights.reduce((s,w)=>s+w,0);
+    let roll = Math.random()*total;
+    let chosen = top[0];
+    for(let i=0;i<top.length;i++){
+      roll -= weights[i];
+      if(roll<=0){ chosen = top[i]; break; }
+    }
+
+    movePiece(chosen.from.r, chosen.from.c, chosen.to.r, chosen.to.c);
+    const battle = state.lastBattle;
+    showBattleAtCell(battle, ()=>{
+      state.thinking = false;
+      if(state.phase==='gameover'){ renderAll(); showOverlay(); return; }
+      state.turn = 'player';
+      if(checkNoMoves('player')){ endGame('cpu','nomoves'); renderAll(); showOverlay(); return; }
+      renderAll();
+    });
+  }
+
+  // ---------- setup interaction ----------
+
+  function onSetupCellClick(r,c){
+    if(state.phase!=='setup' || !PLAYER_ROWS.includes(r)) return;
+    const existing = state.board[r][c];
+    if(existing && existing.owner==='player'){
+      state.stock[existing.type]++;
+      state.board[r][c] = null;
+      state.selectedStockType = existing.type;
+      renderAll();
+      return;
+    }
+    if(existing) return;
+    if(!state.selectedStockType) return;
+    if(state.stock[state.selectedStockType] <= 0) return;
+    if(!canPlaceAt(state.selectedStockType, r, c, 'player')){
+      const def = DEF_BY_TYPE[state.selectedStockType];
+      addLog(`${def.label}はこのマスには配置できません。`, 'warn');
+      renderAll();
+      return;
+    }
+    state.board[r][c] = makePiece('player', state.selectedStockType);
+    state.stock[state.selectedStockType]--;
+    if(state.stock[state.selectedStockType] <= 0) state.selectedStockType = null;
+    renderAll();
+  }
+
+  function onStockClick(type){
+    if(state.phase!=='setup') return;
+    if(state.stock[type] <= 0) return;
+    state.selectedStockType = (state.selectedStockType===type) ? null : type;
+    renderAll();
+  }
+
+  function randomizeSetup(){
+    if(state.phase!=='setup') return;
+    // 既に自分で置いた駒はそのままに、まだ手元にある駒だけを残りの空きマスへランダム配置する
+    const emptyCells = shuffle(territoryCells(PLAYER_ROWS).filter(cell => !state.board[cell.r][cell.c]));
+    const used = new Set(); const key=(r,c)=>r+'-'+c;
+    function takeValid(type){
+      for(const cell of emptyCells){ if(!used.has(key(cell.r,cell.c)) && canPlaceAt(type,cell.r,cell.c,'player')){ used.add(key(cell.r,cell.c)); return cell; } }
+      return null;
+    }
+    // place the most constrained pieces (flag, mine) first so they don't get boxed out
+    const orderedDefs = PIECE_DEFS
+      .filter(def => state.stock[def.type] > 0)
+      .sort((a,b)=>{
+        const rank = t => (t==='flag'||t==='mine') ? 0 : 1;
+        return rank(a.type)-rank(b.type);
+      });
+    orderedDefs.forEach(def=>{
+      const remaining = state.stock[def.type];
+      for(let i=0;i<remaining;i++){
+        const cell = takeValid(def.type);
+        if(cell){
+          state.board[cell.r][cell.c] = makePiece('player', def.type);
+          state.stock[def.type]--;
+        }
+      }
+    });
+    state.selectedStockType = null;
+    renderAll();
+  }
+
+  function resetSetup(){
+    if(state.phase!=='setup') return;
+    PLAYER_ROWS.forEach(r=>{ for(let c=0;c<COLS;c++) state.board[r][c]=null; });
+    state.stock = freshStock();
+    state.selectedStockType = null;
+    renderAll();
+  }
+
+  function finishSetup(){
+    const remaining = Object.values(state.stock).reduce((a,b)=>a+b,0);
+    if(remaining>0 || state.phase!=='setup') return;
+    state.phase = 'playing';
+    state.turn = 'player';
+    addLog('配置完了。ゲームを開始します。あなたの番です。', 'you');
+    renderAll();
+  }
+
+  function onPlayCellClick(r,c){
+    if(state.phase!=='playing' || state.turn!=='player' || state.thinking) return;
+    const piece = state.board[r][c];
+
+    if(state.selected){
+      const legal = state.legalMoves.some(m=>m.r===r && m.c===c);
+      if(legal){
+        const {r:fr,c:fc} = state.selected;
+        state.selected = null; state.legalMoves = [];
+        movePiece(fr,fc,r,c);
+        const battle = state.lastBattle;
+        showBattleAtCell(battle, ()=>{
+          if(state.phase==='gameover'){ renderAll(); showOverlay(); return; }
+          state.turn = 'cpu';
+          state.thinking = true;
+          renderAll();
+          if(checkNoMoves('cpu')){ endGame('player','nomoves'); renderAll(); showOverlay(); return; }
+          setTimeout(cpuTurn, 700);
+        });
+        return;
+      }
+    }
+
+    if(piece && piece.owner==='player' && piece.type!=='mine' && piece.type!=='flag'){
+      if(state.selected && state.selected.r===r && state.selected.c===c){
+        state.selected = null; state.legalMoves = [];
+      } else {
+        state.selected = {r,c};
+        state.legalMoves = getLegalMoves(r,c);
+      }
+    } else {
+      state.selected = null; state.legalMoves = [];
+    }
+    renderAll();
+  }
+
+  function onCellClick(r,c){
+    if(zoneOf(r,c)==='lake') return;
+    if(state.phase==='setup') onSetupCellClick(r,c);
+    else if(state.phase==='playing') onPlayCellClick(r,c);
+  }
+
+  // ---------- rendering ----------
+
+  const boardEl = document.getElementById('board');
+  const paletteEl = document.getElementById('palette');
+  const logEl = document.getElementById('log');
+  const statusEl = document.getElementById('statusText');
+  const setupPanelEl = document.getElementById('setupPanel');
+  const capturedPanelEl = document.getElementById('capturedPanel');
+  const capturedByPlayerEl = document.getElementById('capturedByPlayer');
+  const capturedByCpuEl = document.getElementById('capturedByCpu');
+  const finishBtn = document.getElementById('finishSetupBtn');
+  const overlayEl = document.getElementById('gameOverOverlay');
+  const stampEl = document.getElementById('stamp');
+  const overlayTextEl = document.getElementById('overlayText');
+
+  // ぶつかった駒をマス上でそのまま1.2秒開示してから次に進む(バナー等は出さない)
+  function showBattleAtCell(battle, callback){
+    if(!battle){ renderAll(); callback(); return; }
+    state.battleDisplay = { r:battle.r, c:battle.c, attacker:battle.attacker, defender:battle.defender };
+    renderAll();
+    setTimeout(()=>{
+      state.battleDisplay = null;
+      callback();
+    }, 1200);
+  }
+
+  function createPieceEl(piece, showTrue, extraClass){
+    const pieceEl = document.createElement('div');
+    pieceEl.className = 'piece' + (piece.owner==='cpu' ? ' cpu-piece' : '') + (!showTrue ? ' cpu-hidden' : '') + (extraClass ? ' '+extraClass : '');
+    if(piece.label.length>=3) pieceEl.classList.add('lbl-sm');
+    if(showTrue){
+      const icon = PIECE_ICONS[piece.type];
+      const labelSpan = document.createElement('span');
+      labelSpan.textContent = piece.label;
+      if(VERTICAL_LABEL_TYPES.has(piece.type)) labelSpan.classList.add('label-vertical');
+      if(icon) pieceEl.insertAdjacentHTML('beforeend', icon);
+      pieceEl.appendChild(labelSpan);
+      if(piece.owner==='player' && piece.revealed){
+        pieceEl.classList.add('exposed');
+        pieceEl.title = '相手に正体を知られています';
+      }
+    }
+    return pieceEl;
+  }
+
+  function renderBoard(){
+    boardEl.innerHTML = '';
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        if(isHQRow(r) && c===HQ_PHANTOM_COL) continue; // 司令部は列3のマスに統合済み(2マス分を1駒として描画)
+        const cell = document.createElement('div');
+        const zone = zoneOf(r,c);
+        cell.className = 'cell zone-' + zone;
+        if(isEntry(r,c)) cell.classList.add('entry');
+        const isCpuHQ = isHQCell(r,c,'cpu');
+        const isPlayerHQ = isHQCell(r,c,'player');
+        if(isCpuHQ) cell.classList.add('hq-cpu');
+        if(isPlayerHQ) cell.classList.add('hq-player');
+        if(isCpuHQ || isPlayerHQ){
+          cell.insertAdjacentHTML('beforeend', isCpuHQ ? HQ_EMBLEM_CPU : HQ_EMBLEM_PLAYER);
+        }
+        if(isHQRow(r) && c===HQ_COL) cell.style.gridColumn = 'span 2';
+
+        const isSetupTarget = state.phase==='setup' && zone==='player';
+        const isPlayTarget = state.phase==='playing' && zone!=='lake';
+        if(isSetupTarget || isPlayTarget) cell.classList.add('clickable');
+        if(state.phase==='setup' && zone==='player' && !state.board[r][c]) cell.classList.add('setup-empty');
+
+        if(state.selected && state.selected.r===r && state.selected.c===c) cell.classList.add('selected');
+        if(state.phase==='playing'){
+          const legal = state.legalMoves.find(m=>m.r===r && m.c===c);
+          if(legal){
+            const occ = state.board[r][c];
+            cell.classList.add(occ ? 'legal-capture' : 'legal-empty');
+          }
+        }
+
+        if(state.battleDisplay && state.battleDisplay.r===r && state.battleDisplay.c===c){
+          cell.classList.add('cell-clash');
+          const clashWrap = document.createElement('div');
+          clashWrap.className = 'clash-wrap';
+          clashWrap.appendChild(createPieceEl(state.battleDisplay.attacker, true, 'clash-piece'));
+          clashWrap.appendChild(createPieceEl(state.battleDisplay.defender, true, 'clash-piece'));
+          cell.appendChild(clashWrap);
+        } else {
+          const piece = state.board[r][c];
+          if(piece){
+            const showTrue = piece.owner==='player' || piece.revealed;
+            const pieceEl = createPieceEl(piece, showTrue);
+            if(state.selected && state.selected.r===r && state.selected.c===c) pieceEl.classList.add('selected-piece');
+            cell.appendChild(pieceEl);
+          }
+        }
+
+        cell.addEventListener('click', ()=> onCellClick(r,c));
+        boardEl.appendChild(cell);
+      }
+    }
+  }
+
+  function renderPalette(){
+    paletteEl.innerHTML = '';
+    PIECE_DEFS.forEach(def=>{
+      const remaining = state.stock[def.type];
+      const item = document.createElement('div');
+      item.className = 'stock-item' + (remaining<=0 ? ' empty' : '') + (state.selectedStockType===def.type ? ' selected' : '');
+      const miniWrap = document.createElement('div');
+      miniWrap.className = 'stock-mini-wrap';
+      miniWrap.appendChild(createPieceEl({type:def.type, label:def.label, owner:'player'}, true));
+      const textWrap = document.createElement('div');
+      textWrap.className = 'stock-item-text';
+      const label = document.createElement('div');
+      label.className = 'stock-label';
+      label.textContent = def.label;
+      const count = document.createElement('div');
+      count.className = 'stock-count';
+      count.textContent = '残り ' + remaining;
+      textWrap.appendChild(label); textWrap.appendChild(count);
+      item.appendChild(miniWrap); item.appendChild(textWrap);
+      item.addEventListener('click', ()=> onStockClick(def.type));
+      paletteEl.appendChild(item);
+    });
+    const remainingTotal = Object.values(state.stock).reduce((a,b)=>a+b,0);
+    finishBtn.disabled = remainingTotal>0;
+  }
+
+  function renderLog(){
+    logEl.innerHTML = '';
+    state.log.slice().reverse().forEach(entry=>{
+      const line = document.createElement('div');
+      line.className = 'log-line ' + entry.cls;
+      line.textContent = entry.text;
+      logEl.appendChild(line);
+    });
+  }
+
+  function renderCaptured(){
+    function fill(el, list){
+      el.innerHTML = '';
+      if(list.length===0){
+        const note = document.createElement('span');
+        note.className = 'empty-note';
+        el.appendChild(note);
+        note.textContent = 'まだありません';
+        return;
+      }
+      list.forEach(info=>{
+        const mini = document.createElement('div');
+        mini.className = 'captured-mini';
+        mini.title = info.label;
+        mini.appendChild(createPieceEl(info, true, 'captured-view'));
+        el.appendChild(mini);
+      });
+    }
+    fill(capturedByPlayerEl, state.capturedByPlayer);
+    fill(capturedByCpuEl, state.capturedByCpu);
+  }
+
+  function renderStatus(){
+    statusEl.classList.remove('turn-player','turn-cpu');
+    if(state.phase==='setup'){
+      statusEl.textContent = '駒を配置してください';
+    } else if(state.phase==='playing'){
+      if(state.turn==='player'){
+        statusEl.textContent = 'あなたの番です';
+        statusEl.classList.add('turn-player');
+      } else {
+        statusEl.textContent = '相手が考え中…';
+        statusEl.classList.add('turn-cpu');
+      }
+    } else {
+      statusEl.textContent = state.winner===null ? '引き分け' : (state.winner==='player' ? 'あなたの勝利' : '相手の勝利');
+    }
+  }
+
+  function renderPanels(){
+    setupPanelEl.style.display = state.phase==='setup' ? 'block' : 'none';
+    capturedPanelEl.style.display = state.phase==='setup' ? 'none' : 'block';
+  }
+
+  function showOverlay(){
+    const isDraw = state.winner===null;
+    const isWin = state.winner==='player';
+    stampEl.textContent = isDraw ? '分' : (isWin ? '勝' : '敗');
+    stampEl.className = 'stamp ' + (isDraw ? 'draw' : (isWin ? 'win' : 'lose'));
+    if(isDraw){
+      overlayTextEl.textContent = '両軍の将・佐階級が同時に全滅しました。';
+    } else if(state.winReason==='hq'){
+      overlayTextEl.textContent = isWin ? '敵司令部を占領しました。見事な采配です。' : '自司令部を占領されました。次こそは。';
+    } else {
+      overlayTextEl.textContent = isWin ? '敵の将・佐階級を壊滅させました。' : '将・佐階級が壊滅しました。次こそは。';
+    }
+    overlayEl.style.display = 'flex';
+  }
+  function hideOverlay(){ overlayEl.style.display = 'none'; }
+
+  // ---------- 勝敗表モーダル ----------
+
+  const tableOverlayEl = document.getElementById('tableOverlay');
+  const resultTableEl = document.getElementById('resultTable');
+  let resultTableBuilt = false;
+
+  function combatSymbol(rowDef, colDef){
+    if(colDef.type==='flag') return rowDef.type==='flag' ? {sym:'－',cls:'na'} : {sym:'○',cls:'win'};
+    if(rowDef.type==='flag') return {sym:'－',cls:'na'};
+    if(rowDef.type===colDef.type) return {sym:'△',cls:'draw'};
+    if(BEATS[rowDef.type] && BEATS[rowDef.type].includes(colDef.type)) return {sym:'○',cls:'win'};
+    return {sym:'×',cls:'lose'};
+  }
+
+  function buildResultTable(){
+    if(resultTableBuilt) return;
+    resultTableEl.innerHTML = '';
+    const headRow = document.createElement('tr');
+    const corner = document.createElement('th');
+    corner.textContent = '自\\敵';
+    headRow.appendChild(corner);
+    PIECE_DEFS.forEach(colDef=>{
+      const th = document.createElement('th');
+      th.textContent = colDef.label;
+      headRow.appendChild(th);
+    });
+    resultTableEl.appendChild(headRow);
+
+    PIECE_DEFS.forEach(rowDef=>{
+      const tr = document.createElement('tr');
+      const rowHead = document.createElement('th');
+      rowHead.textContent = rowDef.label;
+      tr.appendChild(rowHead);
+      PIECE_DEFS.forEach(colDef=>{
+        const td = document.createElement('td');
+        const {sym,cls} = combatSymbol(rowDef, colDef);
+        td.textContent = sym;
+        td.className = cls;
+        tr.appendChild(td);
+      });
+      resultTableEl.appendChild(tr);
+    });
+
+    // カーソルが当たっている行・列をハイライトする
+    const allCells = resultTableEl.querySelectorAll('th, td');
+    allCells.forEach(cell=>{
+      cell.addEventListener('mouseenter', ()=> setRowColHighlight(cell, true));
+      cell.addEventListener('mouseleave', ()=> setRowColHighlight(cell, false));
+    });
+
+    resultTableBuilt = true;
+  }
+
+  function setRowColHighlight(cell, on){
+    const row = cell.parentElement;
+    const rowIdx = row.rowIndex;
+    const colIdx = cell.cellIndex;
+    if(rowIdx<0 || colIdx<0) return;
+    Array.from(row.cells).forEach(c=> c.classList.toggle('hl-cell', on));
+    Array.from(resultTableEl.rows).forEach(r=>{
+      const c = r.cells[colIdx];
+      if(c) c.classList.toggle('hl-cell', on);
+    });
+    // データセル同士が交差する、まさにカーソル直下のマスをより強く強調する
+    if(rowIdx>0 && colIdx>0) cell.classList.toggle('hl-exact', on);
+  }
+
+  function showTable(){ buildResultTable(); tableOverlayEl.style.display = 'flex'; }
+  function hideTable(){ tableOverlayEl.style.display = 'none'; }
+
+  // ---------- 移動範囲モーダル ----------
+  // 実際の盤の障害物(河・味方の駒など)を無視した、方向・到達距離だけを示す簡易図。
+  const MOVE_PATTERNS = {
+    marshal:     { cells:[[-1,0],[1,0],[0,-1],[0,1]], desc:'縦横に1マス。' },
+    general:     { cells:[[-1,0],[1,0],[0,-1],[0,1]], desc:'縦横に1マス。' },
+    lgeneral:    { cells:[[-1,0],[1,0],[0,-1],[0,1]], desc:'縦横に1マス。' },
+    colonel:     { cells:[[-1,0],[1,0],[0,-1],[0,1]], desc:'縦横に1マス。' },
+    lcolonel:    { cells:[[-1,0],[1,0],[0,-1],[0,1]], desc:'縦横に1マス。' },
+    major:       { cells:[[-1,0],[1,0],[0,-1],[0,1]], desc:'縦横に1マス。' },
+    captain:     { cells:[[-1,0],[1,0],[0,-1],[0,1]], desc:'縦横に1マス。' },
+    lieutenant:  { cells:[[-1,0],[1,0],[0,-1],[0,1]], desc:'縦横に1マス。' },
+    slieutenant: { cells:[[-1,0],[1,0],[0,-1],[0,1]], desc:'縦横に1マス。' },
+    spy:         { cells:[[-1,0],[1,0],[0,-1],[0,1]], desc:'縦横に1マス。' },
+    cavalry:     { cells:[[-1,0],[-2,0],[1,0],[0,-1],[0,1]], desc:'前へ最大2マス、後ろと左右は1マスまで。' },
+    tank:        { cells:[[-1,0],[-2,0],[1,0],[0,-1],[0,1]], desc:'前へ最大2マス、後ろと左右は1マスまで。' },
+    engineer:    { cells:[[-1,0],[-2,0],[1,0],[2,0],[0,-1],[0,-2],[0,1],[0,2]], desc:'縦横に何マスでも直進(遮蔽物の手前まで)。橋へは突入口から斜めにのみ渡れる。' },
+    airplane:    { cells:[[-1,0],[-2,0],[1,0],[2,0],[0,-1],[0,1]], desc:'縦は何マスでも(駒や河を飛び越え自由に渡河)。横は1マスのみ。' },
+    mine:        { cells:[], desc:'移動できません。' },
+    flag:        { cells:[], desc:'移動できません。' },
+  };
+
+  const moveOverlayEl = document.getElementById('moveOverlay');
+  const moveListEl = document.getElementById('moveList');
+  let moveListBuilt = false;
+
+  function buildMoveList(){
+    if(moveListBuilt) return;
+    moveListEl.innerHTML = '';
+
+    // 同じ移動パターンの駒はまとめて1行に表示する
+    const groups = [];
+    const indexByKey = new Map();
+    PIECE_DEFS.forEach(def=>{
+      const pattern = MOVE_PATTERNS[def.type];
+      const key = JSON.stringify(pattern.cells) + '|' + pattern.desc;
+      if(indexByKey.has(key)){
+        groups[indexByKey.get(key)].defs.push(def);
+      } else {
+        indexByKey.set(key, groups.length);
+        groups.push({ pattern, defs:[def] });
+      }
+    });
+
+    groups.forEach(({pattern, defs})=>{
+      const row = document.createElement('div');
+      row.className = 'move-row';
+
+      const nameCol = document.createElement('div');
+      nameCol.className = 'move-name';
+      const minisWrap = document.createElement('div');
+      minisWrap.className = 'move-name-minis';
+      defs.forEach(def=>{
+        const miniWrap = document.createElement('div');
+        miniWrap.className = 'stock-mini-wrap move-mini-wrap';
+        miniWrap.appendChild(createPieceEl({type:def.type, label:def.label, owner:'player'}, true));
+        minisWrap.appendChild(miniWrap);
+      });
+      const nameLabel = document.createElement('span');
+      nameLabel.textContent = defs.map(d=>d.label).join('・');
+      nameCol.appendChild(minisWrap); nameCol.appendChild(nameLabel);
+
+      const grid = document.createElement('div');
+      grid.className = 'move-grid';
+      for(let r=-2;r<=2;r++){
+        for(let c=-2;c<=2;c++){
+          const cell = document.createElement('div');
+          if(r===0 && c===0) cell.className = 'move-cell center';
+          else if(pattern.cells.some(([pr,pc])=>pr===r && pc===c)) cell.className = 'move-cell reach';
+          else cell.className = 'move-cell';
+          grid.appendChild(cell);
+        }
+      }
+
+      const desc = document.createElement('div');
+      desc.className = 'move-desc';
+      desc.textContent = pattern.desc;
+
+      row.appendChild(nameCol);
+      row.appendChild(grid);
+      row.appendChild(desc);
+      moveListEl.appendChild(row);
+    });
+    moveListBuilt = true;
+  }
+
+  function showMoveList(){ buildMoveList(); moveOverlayEl.style.display = 'flex'; }
+  function hideMoveList(){ moveOverlayEl.style.display = 'none'; }
+
+  const rulesOverlayEl = document.getElementById('rulesOverlay');
+  function showRules(){ rulesOverlayEl.style.display = 'flex'; }
+  function hideRules(){ rulesOverlayEl.style.display = 'none'; }
+
+  function renderAll(){
+    renderBoard();
+    renderPalette();
+    renderLog();
+    renderCaptured();
+    renderStatus();
+    renderPanels();
+  }
+
+  // ---------- wiring ----------
+
+  document.getElementById('randomizeBtn').addEventListener('click', randomizeSetup);
+  document.getElementById('resetSetupBtn').addEventListener('click', resetSetup);
+  document.getElementById('finishSetupBtn').addEventListener('click', finishSetup);
+  document.getElementById('restartBtn').addEventListener('click', ()=>{ hideOverlay(); newGame(); });
+  document.getElementById('playAgainBtn').addEventListener('click', ()=>{ hideOverlay(); newGame(); });
+  document.getElementById('showTableBtn').addEventListener('click', showTable);
+  document.getElementById('closeTableBtn').addEventListener('click', hideTable);
+  tableOverlayEl.addEventListener('click', (e)=>{ if(e.target===tableOverlayEl) hideTable(); });
+  document.getElementById('showMoveBtn').addEventListener('click', showMoveList);
+  document.getElementById('closeMoveBtn').addEventListener('click', hideMoveList);
+  moveOverlayEl.addEventListener('click', (e)=>{ if(e.target===moveOverlayEl) hideMoveList(); });
+  document.getElementById('showRulesBtn').addEventListener('click', showRules);
+  document.getElementById('closeRulesBtn').addEventListener('click', hideRules);
+  rulesOverlayEl.addEventListener('click', (e)=>{ if(e.target===rulesOverlayEl) hideRules(); });
+
+  newGame();
+})();
+</script>
+</body>
+</html>
