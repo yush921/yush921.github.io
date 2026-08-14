@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>yush921 | Portfolio</title>
+<meta name="description" content="yush921のポートフォリオサイト。プロジェクトやスキルを紹介しています。" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<a class="skip-link" href="#main">メインコンテンツへスキップ</a>
+
+<header class="site-header">
+  <nav class="nav container">
+    <a href="#top" class="brand">yush921</a>
+    <button class="nav-toggle" id="navToggle" aria-label="メニューを開く" aria-expanded="false" aria-controls="navMenu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-menu" id="navMenu">
+      <li><a href="#about">About</a></li>
+      <li><a href="#skills">Skills</a></li>
+      <li><a href="#projects">Projects</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+    <button class="theme-toggle" id="themeToggle" aria-label="テーマ切り替え" title="ライト/ダーク切り替え">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+    </button>
+  </nav>
+</header>
+
+<main id="main">
+  <section id="top" class="hero">
+    <div class="container hero-inner">
+      <p class="eyebrow">こんにちは、私は</p>
+      <h1 class="hero-title">yush921</h1>
+      <p class="hero-tagline">Web Developer — フロントエンドからバックエンドまで作るのが好きです</p>
+      <div class="hero-actions">
+        <a href="#projects" class="btn btn-primary">プロジェクトを見る</a>
+        <a href="#contact" class="btn btn-ghost">連絡する</a>
+      </div>
+      <div class="hero-links">
+        <a href="https://github.com/yush921" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.57.1.78-.25.78-.55v-1.94c-3.2.7-3.88-1.54-3.88-1.54-.52-1.34-1.28-1.69-1.28-1.69-1.04-.72.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.75 2.7 1.25 3.36.96.1-.74.4-1.25.73-1.54-2.56-.29-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.64 1.59.24 2.77.12 3.06.74.8 1.18 1.83 1.18 3.09 0 4.43-2.7 5.4-5.27 5.69.41.36.78 1.08.78 2.17v3.22c0 .3.2.66.79.55A10.52 10.52 0 0 0 23.5 12c0-6.27-5.23-11.5-11.5-11.5Z"/></svg>
+        </a>
+        <a href="mailto:yush921@yahoo.co.jp" aria-label="Email">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section id="about" class="section">
+    <div class="container">
+      <h2 class="section-title"><span class="section-num">01.</span> About</h2>
+      <div class="about-grid">
+        <p class="about-text">
+          はじめまして、yush921です。Next.js・TypeScript・PostgreSQLなどを使ったWebアプリケーション開発に取り組んでいます。
+          小さなツールから実用的なアプリまで、手を動かしながら学ぶことを大切にしています。
+          このサイトはポートフォリオのテンプレートとして作成しました — 自己紹介や実績を自由に書き換えて使ってください。
+        </p>
+        <ul class="about-facts">
+          <li><span>所在地</span>Japan</li>
+          <li><span>役割</span>Web Developer</li>
+          <li><span>興味</span>Frontend / Backend / DB設計</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="skills" class="section section-alt">
+    <div class="container">
+      <h2 class="section-title"><span class="section-num">02.</span> Skills</h2>
+      <div class="skills-grid">
+        <div class="skill-card">
+          <h3>Frontend</h3>
+          <ul>
+            <li>TypeScript / JavaScript</li>
+            <li>React</li>
+            <li>Next.js</li>
+            <li>Tailwind CSS</li>
+          </ul>
+        </div>
+        <div class="skill-card">
+          <h3>Backend</h3>
+          <ul>
+            <li>Node.js</li>
+            <li>Next.js Server Actions</li>
+            <li>Prisma ORM</li>
+            <li>REST API設計</li>
+          </ul>
+        </div>
+        <div class="skill-card">
+          <h3>Database / Infra</h3>
+          <ul>
+            <li>PostgreSQL</li>
+            <li>Git / GitHub</li>
+            <li>Vercel</li>
+            <li>GitHub Pages / Actions</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="projects" class="section">
+    <div class="container">
+      <h2 class="section-title"><span class="section-num">03.</span> Projects</h2>
+      <div class="projects-grid">
+        <article class="project-card">
+          <div class="project-card-head">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <div class="project-links">
+              <a href="https://github.com/yush921/ToDoApp" target="_blank" rel="noopener noreferrer" aria-label="GitHubで見る">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.57.1.78-.25.78-.55v-1.94c-3.2.7-3.88-1.54-3.88-1.54-.52-1.34-1.28-1.69-1.28-1.69-1.04-.72.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.75 2.7 1.25 3.36.96.1-.74.4-1.25.73-1.54-2.56-.29-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.64 1.59.24 2.77.12 3.06.74.8 1.18 1.83 1.18 3.09 0 4.43-2.7 5.4-5.27 5.69.41.36.78 1.08.78 2.17v3.22c0 .3.2.66.79.55A10.52 10.52 0 0 0 23.5 12c0-6.27-5.23-11.5-11.5-11.5Z"/></svg>
+              </a>
+            </div>
+          </div>
+          <h3>シンプルToDoアプリ</h3>
+          <p>Next.js (App Router) + TypeScript + Tailwind CSS + PostgreSQL (Prisma) で作られたタスク管理アプリ。Server Actionsによるサーバーサイド処理を採用。</p>
+          <ul class="project-tags">
+            <li>Next.js</li>
+            <li>TypeScript</li>
+            <li>PostgreSQL</li>
+            <li>Prisma</li>
+          </ul>
+        </article>
+
+        <article class="project-card project-card-placeholder">
+          <div class="project-card-head">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+          <h3>次のプロジェクト</h3>
+          <p>ここに新しいプロジェクトを追加できます。カードをコピーして、タイトル・説明・リンク・タグを書き換えてください。</p>
+          <ul class="project-tags">
+            <li>Coming soon</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" class="section section-alt">
+    <div class="container contact-inner">
+      <h2 class="section-title"><span class="section-num">04.</span> Contact</h2>
+      <p class="contact-text">お仕事のご相談やご質問など、お気軽にご連絡ください。</p>
+      <a class="btn btn-primary" href="mailto:yush921@yahoo.co.jp">yush921@yahoo.co.jp に連絡する</a>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <p>&copy; <span id="year"></span> yush921. Built with GitHub Pages.</p>
+    <a href="#top" class="back-to-top">Back to top ↑</a>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
